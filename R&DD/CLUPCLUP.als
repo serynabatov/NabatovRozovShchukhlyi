@@ -1,4 +1,4 @@
-abstract sig Bool {}
+abstract sig Bool { }
 one sig True extends Bool {}
 one sig False extends Bool {}
 
@@ -6,228 +6,262 @@ one sig False extends Bool {}
 one sig MAC {}
 
 sig DateTime {
-    year: one Int,
-    month: one Int,
-    day: one Int,
-    hour: one Int,
-    minute: one Int
-} {
-// these values are just for modeling
-    year >= 0 and
-    month >= 0 and month =< 4 and
-    day >= 1 and day =< 6 and
-    hour >= 0 and
-    minute >= 0
+	year: one Int,
+	month: one Int,
+	day: one Int,
+	hour: one Int,
+	minute: one Int
+} { 
+// this values are just for modeling
+	year >= 0 and
+	month >= 0 and month =< 4 and
+	day >= 1 and day =< 6 and
+	hour >= 0 and
+	minute >= 0
 }
 
 // in our case we suppose that UUID version 1defined as in RFC 4122
 // so model it as the combination of MAC and datetime
+// added by Sergey
 sig UUID {
-    dt: one DateTime,
-    mac: one MAC
+	dt: one DateTime,
+	mac: one MAC
 }
 
 sig Location {
-    lat: one Int,
-    lon: one Int
+	lat: one Int,
+	lon: one Int	
 } {
 // the values are for modeling
-    lat >= -3 and lat =< 3
-    and lon >= -6 and lon =< 6
+	lat >= -3 and lat =< 3 
+	and lon >= -6 and lon =< 6
 }
 
-sig PhoneNo {}
+sig PhoneNo { }
 
-sig Password {}
+sig Password { }
 
-sig FullName {}
+sig FullName { }
 
-sig Address {}
+sig Address { }
 
 sig Brand {}
 
-sig Registration {
-    phoneNo: one PhoneNo,
+sig RegCode {}
+
+abstract sig Registration {
+	phoneNo: one PhoneNo,
 }
 
-sig StaffRegistration extends Registration {
-    password: one Password,
+sig UserRegistration extends Registration {
+}
+
+sig StaffRegistration extends Registration{
+	password: one Password,
+}
+
+sig MachineRegistration extends Registration {
+	regCode: one RegCode
 }
 
 abstract sig User {
-    fullName: one FullName,
+	fullName: one FullName,
 }
 
 sig PrivilegeUser extends User {
-    reg: one StaffRegistration,
-    store: some Store
+	reg: one StaffRegistration,
+	store: some Store
 }
 
-abstract sig Customer extends User {
-    departments: set Department,
-    regC: one Registration,
-    control: set SessionController
+abstract sig Customer extends  User {
+	departments: set Department,
+	queue: some Queue
 }
-
-sig MachineReq {} //
 
 sig CommonUser extends Customer {
-    priority: one False
+	priority: one False,
+	regC: one UserRegistration,
+	location: some Location,
+	b: some Booking
 }
 
 sig PrioritizedUser extends Customer {
-    priority: one True
+	priority: one True,
+	b: one Booking
 }
 
 sig Network {
-    name: one Brand,
-    addressHead: one Address,
-    stores: some Store,
-    staff: some PrivilegeUser
+	name: one Brand,
+	addressHead: one Address,
+	stores: some Store,
+	staff: some PrivilegeUser
 }
 
 sig Store {
-    address: one Address,
-    capacity: one Int,
-    deps: some Department
+	address: one Address,
+	capacity: one Int,
+	deps: some Department,
+	regM: some MachineRegistration
 } {
-    // the value for modeling
-    capacity >= 1 and capacity =< 6
-
+	// the value for modeling
+	capacity >= 1 and capacity =< 6
+	
 }
 
 sig Department {
-    koef: one Int,
-    capacity: one Int,
-    area: one Int
+	koef: one Int,
+	capacity: one Int,
+	area: one Int
 } {
-    // the value for modeling
-    koef >= 0 and koef =< 3 and
-    capacity >= 1 and capacity =< 2 and
-    area >= 0 and area =< 3
-}
-
-sig SessionController {
-    queue: some Queue,
+	// the value for modeling
+	koef >= 0 and koef =< 3 and
+	capacity >= 1 and capacity =< 2 and
+	area >= 0 and area =< 3
 }
 
 sig Queue {
-    books: some Booking,
-    store: one Store
+	books: some Booking,
+	store: one Store
 }
 
 sig Booking {
-    position: one Int,
-    // state indicates delete, create, enter, left
-    state: one Int,
-    selectedStore: one Store,
-    bookingDate: DateTime,
-    estimatedTime: DateTime,
-    uuid: UUID,
-    departureTime: DateTime,
+	position: one Int,
+	// state indicates delete, create, enter, left
+	state: one Int,
+	selectedStore: one Store,
+	bookingDate: DateTime,
+	estimatedTime: DateTime,
+	uuid: UUID,
+	departureTime: DateTime,
 } {
-    // estimatedTime in booking must be equal to difference between departureTime
-    // and bookingDate
-    // departureTime = bookingDate + estimatedTime
-    position >= 0 and position =< 3 and
-    state >= 0 and state =< 3
+	position >= 0 and position =< 3 and
+	state >= 0 and state =< 3
 }
 
-// fact. Networks HQ are not in the same address
+---------------------------<<facts>>------------------------------------------------
+
+// fact. Networks HQ are not in the same address 
 // we suppose we work with big shop networks like Auchan or 7-11
 fact NoNetworkSameHQAddress {
-    all disj n1, n2 : Network | n1 != n2 implies n1.addressHead != n2.addressHead
+	all disj n1, n2 : Network | n1.addressHead != n2.addressHead
 }
 
 // There is no two Networks have the same store
 // but two or more stores in different networks may have the same address
 fact NoNetworkHasTheSameStore {
-    all disj n1, n2: Network | n1 != n2 implies n1.stores != n2.stores
+	all disj n1, n2: Network |  n1.stores != n2.stores
 }
 
 // fact. Every store must have a network
 fact EveryStoreMustHaveANetwork {
-    all s : Store | one n: Network | s in n.stores
+	all s : Store | one  n: Network | s in n.stores
 }
 
 // fact. We think it's not good to have the same Network stores share the same address
 fact NoStoreNetworkShareTheSameAddress {
-    all disj s, s': Store | one n: Network |  s in n.stores and s' in n.stores implies s.address != s'.address
+	all disj s, s': Store | one n: Network |  s in n.stores and s' in n.stores implies s.address != s'.address
 }
 
 // fact. PhoneNo are unique if user are not staff
 fact PhoneNoUnique {
-    all r, r': Registration | r != r' implies r.phoneNo != r'.phoneNo
+	all  disj r, r': Registration | r.phoneNo != r'.phoneNo
 }
 
 // fact Passwords are unique
 fact PassUnique {
-    all r, r': StaffRegistration | r != r' implies r.password != r'.password
+	all  disj r, r': StaffRegistration | r.password != r'.password
 }
 
-// fact two users can't have the same registration
-// There are some users in fact that are staff and customers at the same time
-// Because as we saw earlier the functionality differs
-fact RegistrationUnique {
-    // exclude the prioritizeduser; think about this one. It's not so obvious as you thought
-    all u, u': User | u != u'  implies u.reg != u'.reg or u.regC != u'.regC
+// fact two staff can't have the same registration
+fact RegistrationStaffUnique {
+	all disj st, st': PrivilegeUser | st.reg != st'.reg
+}
+
+// fact CommonUser can't have the same registration
+fact CommonUserUnique {
+	all disj c, c': CommonUser | c.regC != c'.regC
+}
+
+// fact MachineReg is unique
+fact MachineUnique {
+	all disj s, s': Store | s.regM not in s'.regM
 }
 
 // fact users can't have the same username
 fact UsernameUnique {
-    all u, u' : User | u != u' implies u.fullName != u'.fullName
+	all u, u' : User | u != u' implies u.fullName != u'.fullName
 }
 
 // fact PrivilegeUser must work in the Network
 fact NetworkStaff {
-    all n : Network | all p:PrivilegeUser | p in n.staff
+	all n : Network | all p:PrivilegeUser | p in n.staff
 }
-
-// fact story capacity must be more than departments
-//fact StoreIsBiggerThanDepartments {
-//  all s : Store | all d : Department | d in s.deps implies sum s.d.capacity <= s.capacity
-//}
 
 // fact every store must have departments (delete the hanging departmens)
 fact DepartmentStore {
-    all d : Department | one s: Store | d in s.deps
+	all d : Department | one s: Store | d in s.deps
 }
 
-// fact the controller is only one. It emulates the real controller
-// a person that regulates the flow
-fact ControllerTheOne {
-    all c: Customer | one s:  SessionController| s in c.control
-}
+// fact queue can't hanging
+//fact QueueToController {
+//	all q: Queue | one s: SessionController | q in s.queue 
+//}
 
-// fact queue can't hang
-fact QueueToController {
-    all q: Queue | one s: SessionController | q in s.queue
-}
-
-// fact booking can't hang
+// fact booking can't hanging
 fact BookToQueue {
-    all b: Booking | one q: Queue | b.selectedStore = q.store  implies b in q.books
+	all b: Booking | one q: Queue | b in q.books
 }
 
 // fact Queues are unique
 fact UniqueQueue {
-    all disj q, q': Queue | q != q' implies q.store != q'.store
+	all disj q, q': Queue | q != q' implies q.store != q'.store
 }
 
 // uuid are unique
 fact UUIDUnique {
-    all disj b1, b2 : Booking | b1 != b2 implies b1.uuid != b2.uuid
+	all disj b1, b2 : Booking | b1 != b2 implies b1.uuid != b2.uuid
 }
 
-pred show() {
-    #PrivilegeUser = 2
-    #Department = 5
-    #CommonUser = 2
-    #SessionController = 1
-    #PrioritizedUser = 1
-    //#Booking = 1
-    #Store = 3
-    #Queue = 2
+// fact Store the same for Queue and for Booking
+fact UniqueStoreQueue {
+	all b: Booking | some q: Queue | b in q.books implies b.selectedStore =  q.store
 }
 
-run show for 10
+//fact regCode unique
+fact RegCodeUnique {
+	all disj m1, m2: MachineRegistration | m1.regCode != m2.regCode
+}
+
+-------------<predicates>-------------------------------------------------------- 
+
+
+pred w1 {
+	#Department = 5
+	#CommonUser = 2
+	#PrioritizedUser = 1
+	#Booking = 2
+	#Store = 2
+	#Queue = 1
+	(some disj b1, b2: Booking | b1.bookingDate != b2.bookingDate)
+}
+
+run w1 for 5 but  2 MachineRegistration, 1 PrioritizedUser, 1 PrivilegeUser
+
+pred w2 {
+	#PrivilegeUser = 5
+	#Store = 2
+}
+
+run w2 for 7 
+
+pred w3 {
+	#Department = 2
+	#CommonUser = 2
+	#Booking = 2
+	#Store = 2
+	#Queue = 2
+	(some disj b1, b2: Booking | b1.selectedStore != b2.selectedStore 
+			implies b1.bookingDate = b2.bookingDate)
+}
+
+run w3 for 5 but  2 MachineRegistration, 1 PrioritizedUser, 1 PrivilegeUser
